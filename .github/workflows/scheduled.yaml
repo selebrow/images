@@ -1,0 +1,97 @@
+name: Check for browser updates
+on:
+  schedule:
+    - cron: '23 10 * * 2'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  update-packages:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      pull-requests: write
+    env:
+      GH_USER: ${{ github.actor }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+      
+      - name: Create gpg directory
+        run: |
+          sudo() {
+            if [ $(id -u) -eq 0 ]; then
+              "$@"
+            else
+              command sudo "$@"
+            fi
+          }
+
+          mkdir -m 700 ~/.gnupg
+          sudo mkdir -p /etc/apt/keyrings
+
+      - name: Get latest Firefox
+        id: get-ff-version
+        run: |
+          version=$(scripts/download-firefox.sh)
+          export LATEST_FIREFOX_VERSION=$version
+          echo "LATEST_FIREFOX_VERSION=$version" >> "$GITHUB_OUTPUT"
+          go run scripts/updater.go update-firefox
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get latest Chrome
+        id: get-chrome-version
+        run: |
+          version=$(scripts/download-chrome.sh)
+          export LATEST_CHROME_VERSION=$version
+          echo "LATEST_CHROME_VERSION=$version" >> "$GITHUB_OUTPUT"
+          go run scripts/updater.go update-chrome
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update metadata
+        id: update-meta
+        env:
+          LATEST_FIREFOX_VERSION: ${{ steps.get-ff-version.outputs.LATEST_FIREFOX_VERSION }}
+          LATEST_CHROME_VERSION: ${{ steps.get-chrome-version.outputs.LATEST_CHROME_VERSION }}
+        run: |
+          go run scripts/updater.go update-meta >> "$GITHUB_OUTPUT"
+
+      - name: Check if metadata was updated
+        id: check-meta-diff
+        run: git diff --exit-code ./meta.json
+        continue-on-error: true
+
+      - name: Commit metadata
+        id: commit-meta
+        if: steps.check-meta-diff.outcome != 'success'
+        run: echo "PR_URL=$(./scripts/commit-meta.sh)" >> "$GITHUB_OUTPUT"
+        env:
+          LATEST_FIREFOX_VERSION: ${{ steps.get-ff-version.outputs.LATEST_FIREFOX_VERSION }}
+          LATEST_CHROME_VERSION: ${{ steps.get-chrome-version.outputs.LATEST_CHROME_VERSION }}
+          LATEST_PLAYWRIGHT_VERSION: ${{ steps.update-meta.outputs.LATEST_PLAYWRIGHT_VERSION }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.run_id }}
+
+      - name: Approve the metadata PR
+        if: steps.check-meta-diff.outcome != 'success'
+        run: gh pr review --approve "${PR_URL}"
+        env:
+          PR_URL: ${{ steps.commit-meta.outputs.PR_URL }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge
+        if: steps.check-meta-diff.outcome != 'success'
+        run: gh pr merge --auto --rebase "${PR_URL}"
+        env:
+          PR_URL: ${{ steps.commit-meta.outputs.PR_URL }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
