@@ -1,0 +1,232 @@
+name: Build images on branch
+on:
+  push:
+    paths:
+      - meta.json
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PROJECT: selebrow/images
+  BASE_IMAGE_NAME: selebrow/images/base/ubuntu-noble
+
+permissions:
+  contents: read
+
+jobs:
+  build-base:
+    runs-on: ubuntu-latest
+    outputs:
+      BASE_IMAGE_TAG: ${{ steps.export-base-tag.outputs.BASE_IMAGE_TAG }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Check if base update is needed
+        id: check-base-update
+        run: ./scripts/check-base.sh
+        continue-on-error: true
+
+      - name: Generate base image tag
+        id: generate-tag
+        if: steps.check-base-update.outcome == 'success'
+        run: echo "BASE_IMAGE_TAG=$(./scripts/slug.sh "$GITHUB_REF_NAME"-"$GITHUB_SHA")" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to the Container registry
+        if: steps.check-base-update.outcome == 'success'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build base image
+        if: steps.check-base-update.outcome == 'success'
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          context: ./base/ubuntu-noble
+          file: ./base/ubuntu-noble/Dockerfile
+          build-args: |
+            BASE_IMAGE=ubuntu
+            BASE_IMAGE_TAG=24.04
+          tags: ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:${{ steps.generate-tag.outputs.BASE_IMAGE_TAG }}
+
+      - name: Export base image tag
+        id: export-base-tag
+        run: |
+          if [ "${{ steps.check-base-update.outcome }}" != "success" ]; then
+            echo "BASE_IMAGE_TAG=latest" >> "$GITHUB_OUTPUT"
+          else
+            echo "BASE_IMAGE_TAG=${{ steps.generate-tag.outputs.BASE_IMAGE_TAG }}" >> "$GITHUB_OUTPUT"
+          fi
+
+  generate-matrix:
+    runs-on: ubuntu-latest
+    needs: build-base
+    env:
+      BASE_IMAGE_TAG: ${{ needs.build-base.BASE_IMAGE_TAG }}
+    outputs:
+      wd-matrix: ${{ steps.gen-wd-matrix.outputs.WD_MATRIX }}
+      pw-matrix: ${{ steps.gen-pw-matrix.outputs.PW_MATRIX }}
+      image-tag: ${{ steps.gen-tag.IMAGE_TAG }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Get old meta
+        run: |
+          if [[ "$GITHUB_REF" == 'refs/heads/main' ]]; then
+            git show $(git rev-parse HEAD^):meta.json > meta-old.json
+          else
+            git show origin/main:meta.json > meta-old.json
+          fi
+
+      - name: Generate WD Matrix
+        id: gen-wd-matrix
+        run: echo "WD_MATRIX=$(go run scripts/updater.go generate-wd-matrix)" >> "$GITHUB_OUTPUT"
+
+      - name: Generate PW Matrix
+        id: gen-pw-matrix
+        run: echo "PW_MATRIX=$(go run scripts/updater.go generate-pw-matrix)" >> "$GITHUB_OUTPUT"
+
+      - name: Generate image tag
+        id: gen-tag
+        run: echo "IMAGE_TAG=$(./scripts/slug.sh $GITHUB_REF_NAME-$GITHUB_SHA)" >> "$GITHUB_OUTPUT"
+
+  build-webdriver:
+    runs-on: ubuntu-latest
+    needs: generate-matrix
+    if: needs.generate-matrix.outputs.wd-matrix != '[]' && needs.generate-matrix.outputs.wd-matrix != 'null'
+    strategy:
+      matrix: ${{ fromJson(needs.generate-matrix.outputs.wd-matrix) }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Get browser file links
+        id: browser-links
+        run: |
+          go run scripts/updater.go ${{ matrix.browser_name }}-links ${{ matrix.browser_tag }} >> "$GITHUB_OUTPUT"
+
+      - name: Build Go tools
+        run: |
+          make -C webdriver/src
+          make -C webdriver/chrome/src
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          context: ./webdriver/
+          file: ./webdriver/${{ matrix.browser_name }}.Dockerfile
+          build-args: |
+            BASE_IMAGE=${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}
+            BASE_IMAGE_TAG=${{ matrix.base_image_tag}}
+            CHROME_URL=${{ steps.browser-links.outputs.CHROME_URL }}
+            CHROME_HEADLESS_URL=${{ steps.browser-links.outputs.CHROME_HEADLESS_URL }}
+            CHROMEDRIVER_URL=${{ steps.browser-links.outputs.CHROMEDRIVER_URL }}
+            GECKODRIVER_URL=${{ steps.browser-links.outputs.GECKODRIVER_URL }}
+            FIREFOX_URL=${{ steps.browser-links.outputs.FIREFOX_URL }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PROJECT }}/webdriver/${{ matrix.browser_name }}:${{ needs.generate-matrix.outpus.image-tag }}
+
+  build-playwright:
+    runs-on: ubuntu-latest
+    needs: generate-matrix
+    if: needs.generate-matrix.outputs.pw-matrix != '[]' && needs.generate-matrix.outputs.pw-matrix != 'null'
+    strategy:
+      matrix: ${{ fromJson(needs.generate-matrix.outputs.pw-matrix) }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        if: matrix.browser_name == 'chrome'
+        with:
+          go-version: '1.24'
+
+      - name: Download chrome files
+        id: chrome-links
+        run: |
+          if [[ ${{ matrix.browser_name }} == 'chrome' ]]; then
+            go run scripts/updater.go chrome-links ${{ matrix.browser_tag }} >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          context: ./playwright/
+          file: ./playwright/${{ matrix.browser_name }}.Dockerfile
+          build-args: |
+            BASE_IMAGE=${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}
+            BASE_IMAGE_TAG=${{ matrix.base_image_tag}}
+            PLAYWRIGHT_VERSION=${{ matrix.image_version }}
+            CHROME_URL=${{ steps.chrome-links.outputs.CHROME_URL }}
+            CHROME_HEADLESS_URL=${{ steps.chrome-links.outputs.CHROME_HEADLESS_URL }}
+            CHROMEDRIVER_URL=${{ steps.chrome-links.outputs.CHROMEDRIVER_URL }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PROJECT }}/playwright/${{ matrix.browser_name }}:${{ needs.generate-matrix.outpus.image-tag }}
+
+  create-release:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Generate tag
+        id: gen-tag
+        run: echo "RELEASE_TAG=$(./scripts/generate-tag.sh)" >> "$GITHUB_OUTPUT"
+
+      - name: Create tag
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'refs/tags/${{ steps.gen-tag.outputs.RELEASE_TAG }}',
+              sha: context.sha
+            })
