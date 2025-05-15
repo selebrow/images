@@ -4,7 +4,7 @@
             "images": {
                 "ubuntu-noble": {
                     "tags": {
-                        "notag": ""
+                        "notag": "noble-20250415.1"
                     }
                 }
             }
