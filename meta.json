@@ -1,0 +1,36 @@
+{
+    "build": {
+        "base": {
+            "images": {
+                "ubuntu-noble": {
+                    "tags": {
+                        "notag": ""
+                    }
+                }
+            }
+        },
+        "playwright": {
+            "images": {
+                "chrome": {
+                    "tags": {}
+                },
+                "firefox": {
+                    "tags": {}
+                },
+                "webkit": {
+                    "tags": {}
+                }
+            }
+        },
+        "webdriver": {
+            "images": {
+                "chrome": {
+                    "tags": {}
+                },
+                "firefox": {
+                    "tags": {}
+                }
+            }
+        }
+    }
+}
