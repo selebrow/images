@@ -69,11 +69,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-base
     env:
-      BASE_IMAGE_TAG: ${{ needs.build-base.BASE_IMAGE_TAG }}
+      BASE_IMAGE_TAG: ${{ needs.build-base.outputs.BASE_IMAGE_TAG }}
     outputs:
       wd-matrix: ${{ steps.gen-wd-matrix.outputs.WD_MATRIX }}
       pw-matrix: ${{ steps.gen-pw-matrix.outputs.PW_MATRIX }}
-      image-tag: ${{ steps.gen-tag.IMAGE_TAG }}
+      image-tag: ${{ steps.gen-tag.outputs.IMAGE_TAG }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -103,17 +103,20 @@ jobs:
 
       - name: Generate image tag
         id: gen-tag
-        run: echo "IMAGE_TAG=$(./scripts/slug.sh $GITHUB_REF_NAME-$GITHUB_SHA)" >> "$GITHUB_OUTPUT"
+        run: echo "IMAGE_TAG=$(./scripts/slug.sh "$GITHUB_REF_NAME"-"$GITHUB_SHA")" >> "$GITHUB_OUTPUT"
 
   build-webdriver:
     runs-on: ubuntu-latest
     needs: generate-matrix
     if: needs.generate-matrix.outputs.wd-matrix != '[]' && needs.generate-matrix.outputs.wd-matrix != 'null'
     strategy:
-      matrix: ${{ fromJSON(needs.generate-matrix.outputs.wd-matrix) }}
+      matrix:
+        include: ${{ fromJSON(needs.generate-matrix.outputs.wd-matrix) }}
     permissions:
       contents: read
       packages: write
+    env:
+      IMAGE_TAG: ${{ needs.generate-matrix.outputs.image-tag }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -155,17 +158,20 @@ jobs:
             CHROMEDRIVER_URL=${{ steps.browser-links.outputs.CHROMEDRIVER_URL }}
             GECKODRIVER_URL=${{ steps.browser-links.outputs.GECKODRIVER_URL }}
             FIREFOX_URL=${{ steps.browser-links.outputs.FIREFOX_URL }}
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PROJECT }}/webdriver/${{ matrix.browser_name }}:${{ needs.generate-matrix.outpus.image-tag }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PROJECT }}/webdriver/${{ matrix.browser_name }}:${{ env.IMAGE_TAG }}
 
   build-playwright:
     runs-on: ubuntu-latest
     needs: generate-matrix
     if: needs.generate-matrix.outputs.pw-matrix != '[]' && needs.generate-matrix.outputs.pw-matrix != 'null'
     strategy:
-      matrix: ${{ fromJSON(needs.generate-matrix.outputs.pw-matrix) }}
+      matrix:
+        include: ${{ fromJSON(needs.generate-matrix.outputs.pw-matrix) }}
     permissions:
       contents: read
       packages: write
+    env:
+      IMAGE_TAG: ${{ needs.generate-matrix.outputs.image-tag }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -204,7 +210,7 @@ jobs:
             CHROME_URL=${{ steps.chrome-links.outputs.CHROME_URL }}
             CHROME_HEADLESS_URL=${{ steps.chrome-links.outputs.CHROME_HEADLESS_URL }}
             CHROMEDRIVER_URL=${{ steps.chrome-links.outputs.CHROMEDRIVER_URL }}
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PROJECT }}/playwright/${{ matrix.browser_name }}:${{ needs.generate-matrix.outpus.image-tag }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PROJECT }}/playwright/${{ matrix.browser_name }}:${{ env.IMAGE_TAG }}
 
   create-release:
     runs-on: ubuntu-latest
