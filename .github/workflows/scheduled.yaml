@@ -81,10 +81,3 @@ jobs:
           LATEST_PLAYWRIGHT_VERSION: ${{ steps.update-meta.outputs.LATEST_PLAYWRIGHT_VERSION }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_ID: ${{ github.run_id }}
-
-      - name: Enable auto-merge
-        if: steps.check-meta-diff.outcome != 'success'
-        run: gh pr merge --auto --rebase "${PR_URL}"
-        env:
-          PR_URL: ${{ steps.commit-meta.outputs.PR_URL }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
