@@ -1,5 +1,8 @@
 name: Release browser images
 on:
+  create:
+    tags:
+      - '*'
   push:
     tags:
       - '*'
@@ -37,6 +40,6 @@ jobs:
         env:
           TAG_NAME: $GITHUB_REF_NAME
         run: |
-          export SOURCE_TAG=$(./scripts/slug.sh main-$GITHUB_SHA)
+          export SOURCE_TAG=$(./scripts/slug.sh main-"$GITHUB_SHA")
           git show $(git rev-parse HEAD^):meta.json > meta-old.json
           go run scripts/updater.go release-images

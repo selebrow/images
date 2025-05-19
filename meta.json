@@ -4,7 +4,7 @@
             "images": {
                 "ubuntu-noble": {
                     "tags": {
-                        "notag": "noble-20250415.1"
+                        "notag": "noble-20250404"
                     }
                 }
             }
@@ -25,10 +25,14 @@
         "webdriver": {
             "images": {
                 "chrome": {
-                    "tags": {}
+                    "tags": {
+                        "136.0": "136"
+                    }
                 },
                 "firefox": {
-                    "tags": {}
+                    "tags": {
+                        "138.0": "138"
+                    }
                 }
             }
         }
