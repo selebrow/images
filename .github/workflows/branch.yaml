@@ -110,7 +110,8 @@ jobs:
     needs: generate-matrix
     if: needs.generate-matrix.outputs.wd-matrix != '[]' && needs.generate-matrix.outputs.wd-matrix != 'null'
     strategy:
-      matrix: ${{ fromJSON(needs.generate-matrix.outputs.wd-matrix) }}
+      matrix:
+        include: ${{ fromJSON(needs.generate-matrix.outputs.wd-matrix) }}
     permissions:
       contents: read
       packages: write
@@ -162,7 +163,8 @@ jobs:
     needs: generate-matrix
     if: needs.generate-matrix.outputs.pw-matrix != '[]' && needs.generate-matrix.outputs.pw-matrix != 'null'
     strategy:
-      matrix: ${{ fromJSON(needs.generate-matrix.outputs.pw-matrix) }}
+      matrix:
+        include: ${{ fromJSON(needs.generate-matrix.outputs.pw-matrix) }}
     permissions:
       contents: read
       packages: write
