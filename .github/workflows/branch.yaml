@@ -2,7 +2,7 @@ name: Build images on branch
 on:
   push:
     paths:
-      - meta.json
+      - 'meta.json'
 
 env:
   REGISTRY: ghcr.io
@@ -228,13 +228,19 @@ jobs:
 
   create-release:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    needs: [build-playwright, build-webdriver]
+    if: github.ref == 'refs/heads/main' && contains(join(needs.*.result, ','), 'success')
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
 
       - name: Generate tag
         id: gen-tag
@@ -250,3 +256,16 @@ jobs:
               ref: 'refs/tags/${{ steps.gen-tag.outputs.RELEASE_TAG }}',
               sha: context.sha
             })
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.gen-tag.outputs.RELEASE_TAG }}
+
+      - name: Release images
+        env:
+          TAG_NAME: ${{ steps.gen-tag.outputs.RELEASE_TAG }}
+        run: |
+          export SOURCE_TAG=$(./scripts/slug.sh main-"$GITHUB_SHA")
+          git show $(git rev-parse HEAD^):meta.json > meta-old.json
+          go run scripts/updater.go release-images
