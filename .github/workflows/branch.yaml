@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       BASE_IMAGE_TAG: ${{ steps.export-base-tag.outputs.BASE_IMAGE_TAG }}
+      BUILD_BASE_OUTCOME: ${{ steps.check-base-update.outcome }}
     permissions:
       contents: read
       packages: write
@@ -228,8 +229,8 @@ jobs:
 
   create-release:
     runs-on: ubuntu-latest
-    needs: [build-playwright, build-webdriver]
-    if: github.ref == 'refs/heads/main' && contains(join(needs.*.result, ','), 'success')
+    needs: [build-playwright, build-webdriver, build-base]
+    if: always() && github.ref == 'refs/heads/main' && (contains(join(needs.*.result, ','), 'success') || needs.build-base.outputs.BUILD_BASE_OUTCOME == 'success')
     permissions:
       contents: write
     steps:

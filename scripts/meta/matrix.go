@@ -43,7 +43,8 @@ func (m *Meta) GenerateMatrix(oldMeta *Meta, browser string) []MatrixEntry {
 
 	for browserName, tags := range newImages {
 		for imageTag, browserTag := range tags.Tags {
-			if _, ok := oldImages[browserName]; ok {
+			// if the base image was rebuilt we need to update all browser images
+			if _, ok := oldImages[browserName]; ok && baseTag == "latest" {
 				if _, ok := oldImages[browserName].Tags[imageTag]; ok {
 					continue
 				}
