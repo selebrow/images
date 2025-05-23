@@ -8,7 +8,7 @@ gh auth login --with-token
 gh auth setup-git
 
 git config user.name "selebrow-ci"
-git config user.email "1312632+selebrow-ci[bot]@users.noreply.github.com"
+git config user.email "213042858+selebrow-ci[bot]@users.noreply.github.com"
 
 git checkout -b "${NEW_BRANCH}"
 git add meta.json
