@@ -270,6 +270,8 @@ jobs:
       - name: Release images
         env:
           TAG_NAME: ${{ steps.gen-tag.outputs.RELEASE_TAG }}
+          GH_USER: ${{ github.actor }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           export SOURCE_TAG=$(./scripts/slug.sh main-"$GITHUB_SHA")
           git show $(git rev-parse HEAD^):meta.json > meta-old.json
