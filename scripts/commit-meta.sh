@@ -4,7 +4,7 @@ NEW_BRANCH="update-images-${RUN_ID}"
 COMMIT_MESSAGE="Auto-update images"
 DESCRIPTION="Chrome ${LATEST_CHROME_VERSION:-???}, Firefox ${LATEST_FIREFOX_VERSION:-???}, Playwright ${LATEST_PLAYWRIGHT_VERSION:-???}"
 
-git config user.name "selebrow-ci"
+git config user.name "selebrow-ci[bot]"
 git config user.email "213042858+selebrow-ci[bot]@users.noreply.github.com"
 
 git checkout -b "${NEW_BRANCH}"
