@@ -104,10 +104,9 @@ jobs:
           
           git checkout -b "${NEW_BRANCH}"
           git add meta.json
-          git commit -m "$COMMIT_MESSAGE" -m "$DESCRIPTION" >> /dev/null
-          git push -u origin $(git rev-parse --abbrev-ref HEAD) >> /dev/null
+          git commit -m "$COMMIT_MESSAGE" -m "$DESCRIPTION"
+          git push -u origin $(git rev-parse --abbrev-ref HEAD)
 
-          gh auth login --with-token
           echo "PR_URL=$(gh pr create --base main --head "${NEW_BRANCH}" --fill)" >> "$GITHUB_OUTPUT"
 
       - name: Approve the metadata PR
