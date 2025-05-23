@@ -16,10 +16,18 @@ jobs:
     env:
       GH_USER: ${{ github.actor }}
     steps:
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
           fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -82,3 +90,17 @@ jobs:
           LATEST_PLAYWRIGHT_VERSION: ${{ steps.update-meta.outputs.LATEST_PLAYWRIGHT_VERSION }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_ID: ${{ github.run_id }}
+
+      - name: Approve the metadata PR
+        if: steps.check-meta-diff.outcome != 'success'
+        run: gh pr review --approve "${PR_URL}"
+        env:
+          PR_URL: ${{ steps.commit-meta.outputs.PR_URL }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge
+        if: steps.check-meta-diff.outcome != 'success'
+        run: gh pr merge --auto --rebase "${PR_URL}"
+        env:
+          PR_URL: ${{ steps.commit-meta.outputs.PR_URL }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

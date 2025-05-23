@@ -7,8 +7,8 @@ DESCRIPTION="Chrome ${LATEST_CHROME_VERSION:-???}, Firefox ${LATEST_FIREFOX_VERS
 gh auth login --with-token
 gh auth setup-git
 
-git config user.name "github-actions[bot]"
-git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+git config user.name "selebrow-ci"
+git config user.email "1312632+selebrow-ci[bot]@users.noreply.github.com"
 
 git checkout -b "${NEW_BRANCH}"
 git add meta.json
