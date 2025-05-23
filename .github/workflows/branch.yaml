@@ -235,6 +235,7 @@ jobs:
     if: always() && github.ref == 'refs/heads/main' && (contains(join(needs.*.result, ','), 'success') || needs.build-base.outputs.BUILD_BASE_OUTCOME == 'success')
     permissions:
       contents: write
+      packages: write
     steps:
       - uses: actions/checkout@v4
         with:
