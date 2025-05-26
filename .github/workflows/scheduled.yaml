@@ -121,4 +121,4 @@ jobs:
         run: gh pr merge --auto --rebase "${PR_URL}"
         env:
           PR_URL: ${{ steps.commit-meta.outputs.PR_URL }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
