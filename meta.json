@@ -25,14 +25,10 @@
         "webdriver": {
             "images": {
                 "chrome": {
-                    "tags": {
-                        "136.0": "136"
-                    }
+                    "tags": {}
                 },
                 "firefox": {
-                    "tags": {
-                        "138.0": "138"
-                    }
+                    "tags": {}
                 }
             }
         }
