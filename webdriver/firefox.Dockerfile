@@ -12,19 +12,14 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     apt-get install -y --no-install-recommends p11-kit libavcodec60 libdbus-glib-1-2 && \
     apt-get clean && rm -rf /tmp/* && rm -Rf /var/lib/apt/lists/*
 
-ARG GECKODRIVER_URL
-ARG FIREFOX_URL
-
-RUN export DEBIAN_FRONTEND=noninteractive && \
-    curl -fSsL ${GECKODRIVER_URL} -o /tmp/geckodriver-linux64.tar.gz && \
-    tar xzf /tmp/geckodriver-linux64.tar.gz -C /usr/bin && chmod 755 /usr/bin/geckodriver && \
+RUN --mount=type=bind,source=browser_data,target=/data \
+    export DEBIAN_FRONTEND=noninteractive && \
+    tar xzf /data/geckodriver-linux64.tar.gz -C /usr/bin && chmod 755 /usr/bin/geckodriver && \
     geckodriver --version && \
-    curl -fSsL ${FIREFOX_URL} -o /tmp/firefox.deb && \
-    dpkg -i /tmp/firefox.deb && \
+    dpkg -i /data/firefox.deb && \
     # make firefox use system-wide trust store
     ( ln -sf /usr/lib/x86_64-linux-gnu/pkcs11/p11-kit-trust.so /usr/lib/firefox/libnssckbi.so || ln -sf /usr/lib/x86_64-linux-gnu/pkcs11/p11-kit-trust.so /opt/firefox/libnssckbi.so ) && \
-    firefox --version && \
-    rm -rf /tmp/*
+    firefox --version
 
 COPY firefox/rootfs/ /
 

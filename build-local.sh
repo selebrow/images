@@ -1,4 +1,4 @@
-docker build --platform linux/amd64 -t base/ubuntu-noble ./base/ubuntu-noble
+docker buildx build --platform linux/amd64 -t base/ubuntu-noble ./base/ubuntu-noble
 
 docker run --rm --platform linux/amd64 -v `(pwd)`:/work \
 	ubuntu:24.04 \
@@ -23,8 +23,13 @@ go run scripts/updater.go update-chrome
 chrome_version=$(echo $LATEST_CHROME_VERSION | cut -d . -f 1)
 firefox_version=$(echo $LATEST_FIREFOX_VERSION | cut -d . -f 1)
 
-export $(go run scripts/updater.go firefox-links $firefox_version | xargs)
-export $(go run scripts/updater.go chrome-links $chrome_version | xargs)
+mkdir playwright/browser_data
+mkdir webdriver/browser_data
+
+IMAGE_TYPE=webdriver go run scripts/updater.go download-firefox $firefox_version
+IMAGE_TYPE=webdriver go run scripts/updater.go download-chrome $chrome_version
+IMAGE_TYPE=playwright go run scripts/updater.go download-chrome $chrome_version
+
 export $(go run scripts/updater.go update-meta)
 
 make -C webdriver/src
@@ -32,17 +37,12 @@ make -C webdriver/chrome/src
 
 for browser in firefox chrome
 do
-    docker build -t selebrow/webdriver-${browser} --file ./webdriver/${browser}.Dockerfile \
+    docker buildx build -t selebrow/webdriver-${browser} --file ./webdriver/${browser}.Dockerfile \
         ./webdriver/ \
         --network=host \
         --platform linux/amd64 \
         --build-arg BASE_IMAGE=base/ubuntu-noble \
-        --build-arg BASE_IMAGE_TAG=latest \
-        --build-arg FIREFOX_URL=$FIREFOX_URL \
-        --build-arg GECKODRIVER_URL=$GECKODRIVER_URL \
-        --build-arg CHROME_URL=$CHROME_URL \
-        --build-arg CHROME_HEADLESS_URL=$CHROME_HEADLESS_URL \
-        --build-arg CHROMEDRIVER_URL=$CHROMEDRIVER_URL
+        --build-arg BASE_IMAGE_TAG=latest
 done
 
 playwright_version="1.51.1"
@@ -52,15 +52,12 @@ fi
 
 for browser in firefox chrome webkit
 do
-    docker build -t selebrow/playwright-${browser} --file ./playwright/${browser}.Dockerfile \
+    docker buildx build -t selebrow/playwright-${browser} --file ./playwright/${browser}.Dockerfile \
         ./playwright/ \
         --network=host \
         --platform linux/amd64 \
         --build-arg BASE_IMAGE=base/ubuntu-noble \
         --build-arg BASE_IMAGE_TAG=latest \
-        --build-arg CHROME_URL=$CHROME_URL \
-        --build-arg CHROME_HEADLESS_URL=$CHROME_HEADLESS_URL \
-        --build-arg CHROMEDRIVER_URL=$CHROMEDRIVER_URL \
         --build-arg PLAYWRIGHT_VERSION=$LATEST_PLAYWRIGHT_VERSION
 done
 

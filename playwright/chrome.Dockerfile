@@ -15,19 +15,16 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     ln -sf /usr/lib/x86_64-linux-gnu/pkcs11/p11-kit-trust.so /usr/lib/x86_64-linux-gnu/libnssckbi.so && \
     apt-get clean && rm -rf /tmp/* && rm -Rf /var/lib/apt/lists/*
 
-ARG CHROME_URL
-ARG CHROME_HEADLESS_URL
-
-RUN export DEBIAN_FRONTEND=noninteractive && \
-    curl -fSsL ${CHROME_URL} -o /tmp/google-chrome-stable.deb && \
-    dpkg -i /tmp/google-chrome-stable.deb && \
-    rm -rf /tmp/*
+RUN --mount=type=bind,source=browser_data,target=/data \
+    export DEBIAN_FRONTEND=noninteractive && \
+    dpkg -i /data/google-chrome-stable.deb
 
 USER ${SB_USER}
 WORKDIR ${SB_USER_HOME}
 
 ARG PLAYWRIGHT_VERSION=1.51.1
-RUN export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 && \
+RUN --mount=type=bind,source=browser_data,target=/data \
+    export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 && \
     npm install playwright@${PLAYWRIGHT_VERSION} playwright-chromium@${PLAYWRIGHT_VERSION} && \
     CHROMIUM_REVISION=$(jq -r '.browsers[] | select(.name == "chromium") | .revision' <node_modules/playwright-core/browsers.json) && \
     mkdir -p ${SB_USER_HOME}/.cache/ms-playwright/chromium-${CHROMIUM_REVISION}/chrome-linux && \
@@ -37,12 +34,10 @@ RUN export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 && \
     mkdir -p $FFMPEG_CACHE_DIR && \
     ln -s /usr/bin/ffmpeg ${FFMPEG_CACHE_DIR}/ffmpeg-linux && \
     CHROME_HEADLESS_CACHE_DIR=${SB_USER_HOME}/.cache/ms-playwright/chromium_headless_shell-${CHROMIUM_REVISION} && \
-    curl -fSsL ${CHROME_HEADLESS_URL} -o /tmp/chrome-headless-shell-linux64.zip && \
     mkdir -p $CHROME_HEADLESS_CACHE_DIR && \
-    unzip /tmp/chrome-headless-shell-linux64.zip -d ${CHROME_HEADLESS_CACHE_DIR} && \
+    unzip /data/chrome-headless-shell-linux64.zip -d ${CHROME_HEADLESS_CACHE_DIR} && \
     mv ${CHROME_HEADLESS_CACHE_DIR}/chrome-headless-shell-linux64 ${CHROME_HEADLESS_CACHE_DIR}/chrome-linux && \
     ln -s ${CHROME_HEADLESS_CACHE_DIR}/chrome-linux/chrome-headless-shell ${CHROME_HEADLESS_CACHE_DIR}/chrome-linux/headless_shell && \
-    ${CHROME_HEADLESS_CACHE_DIR}/chrome-linux/headless_shell --version && \
-    rm -f /tmp/chrome-headless-shell-linux64.zip
+    ${CHROME_HEADLESS_CACHE_DIR}/chrome-linux/headless_shell --version
 
 ENTRYPOINT [ "dumb-init", "--", "/entrypoint.sh" ]

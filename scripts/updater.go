@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"maps"
+	"net/http"
 	"os"
+	"path"
 	"slices"
 
 	"updater/chrome"
@@ -43,10 +46,10 @@ func main() {
 		generateWDMatrix()
 	case "generate-pw-matrix":
 		generatePWMatrix()
-	case "firefox-links":
-		getFirefoxLinks()
-	case "chrome-links":
-		getChromeLinks()
+	case "download-firefox":
+		downloadFirefox()
+	case "download-chrome":
+		downloadChrome()
 	case "release-images":
 		releaseImages()
 	default:
@@ -179,26 +182,26 @@ func generateMatrix(image string) {
 	fmt.Println(matrix)
 }
 
-func getChromeLinks() {
-	files := map[string]string{
-		chrome.ChromeFile:         "CHROME_URL",
-		chrome.ChromeHeadlessFile: "CHROME_HEADLESS_URL",
-		chrome.ChromedriverFile:   "CHROMEDRIVER_URL",
+func downloadChrome() {
+	files := map[string]struct{}{
+		chrome.ChromeFile:         {},
+		chrome.ChromeHeadlessFile: {},
+		chrome.ChromedriverFile:   {},
 	}
 
-	getBrowserLinks(chrome.Image, files)
+	downloadBrowsers(chrome.Image, files)
 }
 
-func getFirefoxLinks() {
-	files := map[string]string{
-		firefox.GeckodriverFile: "GECKODRIVER_URL",
-		firefox.FirefoxFile:     "FIREFOX_URL",
+func downloadFirefox() {
+	files := map[string]struct{}{
+		firefox.GeckodriverFile: {},
+		firefox.FirefoxFile:     {},
 	}
 
-	getBrowserLinks(firefox.Image, files)
+	downloadBrowsers(firefox.Image, files)
 }
 
-func getBrowserLinks(image string, files map[string]string) {
+func downloadBrowsers(image string, files map[string]struct{}) {
 	revision := os.Args[2]
 	if revision == "" {
 		log.Fatalf("browser revision not provided")
@@ -214,9 +217,51 @@ func getBrowserLinks(image string, files map[string]string) {
 		log.Fatalf("failed to get download links: %v", err)
 	}
 
-	for key, value := range result {
-		fmt.Printf("%s=%s\n", key, value)
+	var authToken string
+	if containerregistry == "ghcr.io" {
+		authToken, err = registry.GenerateGHCRToken(project, image)
+		if err != nil {
+			log.Fatalf("failed to generate ghcr token: %v", err)
+		}
 	}
+
+	for file, link := range result {
+		fmt.Println("downloading", file)
+		if err := downloadFile(file, link, authToken); err != nil {
+			log.Fatalf("failed to download file: %s, %v", file, err)
+		}
+	}
+}
+
+func downloadFile(file, link, authToken string) error {
+	req, err := http.NewRequest(http.MethodGet, link, http.NoBody)
+	if err != nil {
+		return err
+	}
+
+	if authToken != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", authToken))
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	f, err := os.Create(path.Join(os.Getenv("IMAGE_TYPE"), "browser_data", file))
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	if _, err := io.Copy(f, resp.Body); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func releaseImages() {

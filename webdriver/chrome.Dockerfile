@@ -15,19 +15,14 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     ln -sf /usr/lib/x86_64-linux-gnu/pkcs11/p11-kit-trust.so /usr/lib/x86_64-linux-gnu/libnssckbi.so && \
     apt-get clean && rm -rf /tmp/* && rm -Rf /var/lib/apt/lists/*
 
-ARG CHROMEDRIVER_URL
-ARG CHROME_URL
-
-RUN export DEBIAN_FRONTEND=noninteractive && \
-    curl -fSsL ${CHROMEDRIVER_URL} -o /tmp/chromedriver-linux64.zip && \
-    unzip -j /tmp/chromedriver-linux64.zip chromedriver-linux64/chromedriver -d /usr/bin && chmod 755 /usr/bin/chromedriver && \
+RUN --mount=type=bind,source=browser_data,target=/data \
+    export DEBIAN_FRONTEND=noninteractive && \
+    unzip -j /data/chromedriver-linux64.zip chromedriver-linux64/chromedriver -d /usr/bin && chmod 755 /usr/bin/chromedriver && \
     chromedriver --version && \
-    curl -fSsL ${CHROME_URL} -o /tmp/google-chrome-stable.deb && \
-    dpkg -i /tmp/google-chrome-stable.deb && \
+    dpkg -i /data/google-chrome-stable.deb && \
     sed -i -e 's@exec -a "$0" "$HERE/chrome"@& --no-sandbox --disable-gpu@' /opt/google/chrome/google-chrome && \
     chown root:root /opt/google/chrome/chrome-sandbox && chmod 4755 /opt/google/chrome/chrome-sandbox && \
-    google-chrome --version && \
-    rm -rf /tmp/*
+    google-chrome --version
 
 COPY chrome/rootfs/ /
 

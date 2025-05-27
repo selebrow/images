@@ -143,10 +143,12 @@ jobs:
         with:
           go-version: '1.24'
 
-      - name: Get browser file links
-        id: browser-links
+      - name: Download browser files
+        env:
+          IMAGE_TYPE: webdriver
         run: |
-          go run scripts/updater.go ${{ matrix.browser_name }}-links ${{ matrix.browser_tag }} >> "$GITHUB_OUTPUT"
+          mkdir webdriver/browser_data
+          go run scripts/updater.go download-${{ matrix.browser_name }} ${{ matrix.browser_tag }}
 
       - name: Build Go tools
         run: |
@@ -169,11 +171,6 @@ jobs:
           build-args: |
             BASE_IMAGE=${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}
             BASE_IMAGE_TAG=${{ matrix.base_image_tag}}
-            CHROME_URL=${{ steps.browser-links.outputs.CHROME_URL }}
-            CHROME_HEADLESS_URL=${{ steps.browser-links.outputs.CHROME_HEADLESS_URL }}
-            CHROMEDRIVER_URL=${{ steps.browser-links.outputs.CHROMEDRIVER_URL }}
-            GECKODRIVER_URL=${{ steps.browser-links.outputs.GECKODRIVER_URL }}
-            FIREFOX_URL=${{ steps.browser-links.outputs.FIREFOX_URL }}
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PROJECT }}/webdriver/${{ matrix.browser_name }}:${{ env.IMAGE_TAG }}
 
   build-playwright:
@@ -201,10 +198,12 @@ jobs:
           go-version: '1.24'
 
       - name: Download chrome files
-        id: chrome-links
+        env:
+          IMAGE_TYPE: playwright
         run: |
           if [[ ${{ matrix.browser_name }} == 'chrome' ]]; then
-            go run scripts/updater.go chrome-links ${{ matrix.browser_tag }} >> "$GITHUB_OUTPUT"
+            mkdir playwright/browser_data
+            go run scripts/updater.go download-chrome ${{ matrix.browser_tag }}
           fi
 
       - name: Log in to the Container registry
@@ -224,9 +223,6 @@ jobs:
             BASE_IMAGE=${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}
             BASE_IMAGE_TAG=${{ matrix.base_image_tag}}
             PLAYWRIGHT_VERSION=${{ matrix.image_version }}
-            CHROME_URL=${{ steps.chrome-links.outputs.CHROME_URL }}
-            CHROME_HEADLESS_URL=${{ steps.chrome-links.outputs.CHROME_HEADLESS_URL }}
-            CHROMEDRIVER_URL=${{ steps.chrome-links.outputs.CHROMEDRIVER_URL }}
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PROJECT }}/playwright/${{ matrix.browser_name }}:${{ env.IMAGE_TAG }}
 
   create-release:

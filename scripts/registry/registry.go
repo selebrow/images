@@ -82,7 +82,7 @@ func (r *Registry) UploadFiles(tag string, files ...string) error {
 	return err
 }
 
-func (r *Registry) GetDownloadLinks(tag string, files map[string]string) (map[string]string, error) {
+func (r *Registry) GetDownloadLinks(tag string, files map[string]struct{}) (map[string]string, error) {
 	_, content, err := oras.FetchBytes(context.Background(), r.repository, tag, oras.DefaultFetchBytesOptions)
 	if err != nil {
 		return nil, err
@@ -107,12 +107,13 @@ func (r *Registry) GetDownloadLinks(tag string, files map[string]string) (map[st
 
 	results := make(map[string]string)
 	for _, layer := range manifest.Layers {
-		key, ok := files[layer.Annotations[ociFile]]
+		file := layer.Annotations[ociFile]
+		_, ok := files[file]
 		if !ok {
 			continue
 		}
 
-		results[key] = baseURL + layer.Digest.String()
+		results[file] = baseURL + layer.Digest.String()
 	}
 
 	return results, nil
