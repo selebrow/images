@@ -1,0 +1,123 @@
+name: Check for browser updates
+on:
+  schedule:
+    - cron: '23 10 * * 2'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  update-packages:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      pull-requests: write
+    env:
+      GH_USER: ${{ github.actor }}
+    steps:
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+      
+      - name: Create gpg directory
+        run: |
+          sudo() {
+            if [ $(id -u) -eq 0 ]; then
+              "$@"
+            else
+              command sudo "$@"
+            fi
+          }
+
+          mkdir -m 700 ~/.gnupg
+          sudo mkdir -p /etc/apt/keyrings
+
+      - name: Get latest Firefox
+        id: get-ff-version
+        run: |
+          version=$(scripts/download-firefox.sh)
+          export LATEST_FIREFOX_VERSION=$version
+          echo "LATEST_FIREFOX_VERSION=$version" >> "$GITHUB_OUTPUT"
+          go run scripts/updater.go update-firefox
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get latest Chrome
+        id: get-chrome-version
+        run: |
+          version=$(scripts/download-chrome.sh)
+          export LATEST_CHROME_VERSION=$version
+          echo "LATEST_CHROME_VERSION=$version" >> "$GITHUB_OUTPUT"
+          go run scripts/updater.go update-chrome
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate tag
+        id: gen-tag
+        run: echo "RELEASE_TAG=$(./scripts/generate-tag.sh)" >> "$GITHUB_OUTPUT"
+
+      - name: Update metadata
+        id: update-meta
+        env:
+          LATEST_FIREFOX_VERSION: ${{ steps.get-ff-version.outputs.LATEST_FIREFOX_VERSION }}
+          LATEST_CHROME_VERSION: ${{ steps.get-chrome-version.outputs.LATEST_CHROME_VERSION }}
+          RELEASE_TAG: ${{ steps.gen-tag.outputs.RELEASE_TAG }}
+        run: go run scripts/updater.go update-meta >> "$GITHUB_OUTPUT"
+
+      - name: Check if metadata was updated
+        id: check-meta-diff
+        run: git diff --exit-code ./meta.json
+        continue-on-error: true
+
+      - name: Commit metadata
+        id: commit-meta
+        if: steps.check-meta-diff.outcome != 'success'
+        env:
+          LATEST_FIREFOX_VERSION: ${{ steps.get-ff-version.outputs.LATEST_FIREFOX_VERSION }}
+          LATEST_CHROME_VERSION: ${{ steps.get-chrome-version.outputs.LATEST_CHROME_VERSION }}
+          LATEST_PLAYWRIGHT_VERSION: ${{ steps.update-meta.outputs.LATEST_PLAYWRIGHT_VERSION }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          NEW_BRANCH="update-images-${RUN_ID}"
+          COMMIT_MESSAGE="Auto-update images"
+          DESCRIPTION="Chrome ${LATEST_CHROME_VERSION:-???}, Firefox ${LATEST_FIREFOX_VERSION:-???}, Playwright ${LATEST_PLAYWRIGHT_VERSION:-???}"
+
+          GH_USER_ID=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)
+          git config --global user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
+          git config --global user.email '${GH_USER_ID}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
+          
+          git checkout -b "${NEW_BRANCH}"
+          git add meta.json
+          git commit -m "$COMMIT_MESSAGE" -m "$DESCRIPTION"
+          git push -u origin $(git rev-parse --abbrev-ref HEAD)
+
+          echo "PR_URL=$(gh pr create --base main --head "${NEW_BRANCH}" --fill)" >> "$GITHUB_OUTPUT"
+
+      - name: Approve the metadata PR
+        if: steps.check-meta-diff.outcome != 'success'
+        run: gh pr review --approve "${PR_URL}"
+        env:
+          PR_URL: ${{ steps.commit-meta.outputs.PR_URL }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge
+        if: steps.check-meta-diff.outcome != 'success'
+        run: gh pr merge --auto --rebase "${PR_URL}"
+        env:
+          PR_URL: ${{ steps.commit-meta.outputs.PR_URL }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}

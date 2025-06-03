@@ -1,0 +1,7 @@
+browser_data/
+.env
+*.zip
+*.deb
+*.tar.gz
+bin/
+browsers.yaml
