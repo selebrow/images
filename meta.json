@@ -27,10 +27,20 @@
         "webdriver": {
             "images": {
                 "chrome": {
-                    "tags": {}
+                    "tags": {
+                        "137.0": {
+                            "version": "137",
+                            "imageTag": "v1.0.0-137.0"
+                        }
+                    }
                 },
                 "firefox": {
-                    "tags": {}
+                    "tags": {
+                        "139.0": {
+                            "version": "139",
+                            "imageTag": "v1.0.0-139.0"
+                        }
+                    }
                 }
             }
         }
