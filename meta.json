@@ -5,7 +5,7 @@
                 "ubuntu-noble": {
                     "tags": {
                         "notag": {
-                            "version": "noble-20250415.1"
+                            "version": "noble-20250529"
                         }
                     }
                 }
