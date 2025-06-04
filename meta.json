@@ -28,6 +28,10 @@
             "images": {
                 "chrome": {
                     "tags": {
+                        "136.0": {
+                            "version": "136",
+                            "imageTag": "v1.0.1-136.0"
+                        },
                         "137.0": {
                             "version": "137",
                             "imageTag": "v1.0.0-137.0"
@@ -36,6 +40,10 @@
                 },
                 "firefox": {
                     "tags": {
+                        "138.0": {
+                            "version": "138",
+                            "imageTag": "v1.0.1-138.0"
+                        },
                         "139.0": {
                             "version": "139",
                             "imageTag": "v1.0.0-139.0"
