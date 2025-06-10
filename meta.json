@@ -14,13 +14,28 @@
         "playwright": {
             "images": {
                 "chrome": {
-                    "tags": {}
+                    "tags": {
+                        "1.52.0": {
+                            "version": "135",
+                            "imageTag": "v1.0.3-1.52.0"
+                        }
+                    }
                 },
                 "firefox": {
-                    "tags": {}
+                    "tags": {
+                        "1.52.0": {
+                            "version": "137",
+                            "imageTag": "v1.0.3-1.52.0"
+                        }
+                    }
                 },
                 "webkit": {
-                    "tags": {}
+                    "tags": {
+                        "1.52.0": {
+                            "version": "18.4",
+                            "imageTag": "v1.0.3-1.52.0"
+                        }
+                    }
                 }
             }
         },
@@ -28,6 +43,10 @@
             "images": {
                 "chrome": {
                     "tags": {
+                        "135.0": {
+                            "version": "135",
+                            "imageTag": "v1.0.3-135.0"
+                        },
                         "136.0": {
                             "version": "136",
                             "imageTag": "v1.0.1-136.0"
