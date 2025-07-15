@@ -19,8 +19,7 @@ Pin: origin dl.google.com
 Pin-Priority: 1000
 ' | sudo tee /etc/apt/preferences.d/google > /dev/null
 sudo apt-get update > /dev/null
-apt-cache policy show google-chrome-stable 1>&2
-ver=$(apt-cache show google-chrome-stable | grep "Version:" | grep -v snap | head -1 | awk '{print $2}')
+ver=$(apt-cache policy google-chrome-stable | grep "Candidate:" | awk '{print $2}')
 sudo apt-get download google-chrome-stable=$ver >/dev/null
 mv google-chrome-stable*${ver}*.deb google-chrome-stable.deb
 echo $ver
