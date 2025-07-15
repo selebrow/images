@@ -19,6 +19,7 @@ Pin: origin packages.mozilla.org
 Pin-Priority: 1000
 ' | sudo tee /etc/apt/preferences.d/mozilla > /dev/null
 sudo apt-get update >/dev/null
+apt-cache policy firefox 1>&2
 ver=$(apt-cache show firefox | grep "Version:" | grep -v snap | head -1 | awk '{print $2}')
 sudo apt-get download firefox=$ver >/dev/null
 mv firefox*${ver}*.deb firefox.deb
