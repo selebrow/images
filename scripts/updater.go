@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"maps"
 	"net/http"
 	"os"
 	"path"
@@ -168,9 +167,7 @@ func generateMatrix(image string) {
 		log.Fatalf("failed to load meta: %v", err)
 	}
 
-	var (
-		matrix string
-	)
+	var matrix string
 
 	switch image {
 	case meta.Playwright:
@@ -298,7 +295,8 @@ func releaseImages() {
 			log.Fatalf("failed to init registry: %v", err)
 		}
 
-		if err := reg.TagImage(srcTag, fmt.Sprintf("%s-%s", tag, entry.ImageTag)); err != nil {
+		imageTag := fmt.Sprintf("%s-%s", srcTag, entry.ImageTag)
+		if err := reg.TagImage(imageTag, fmt.Sprintf("%s-%s", tag, entry.ImageTag)); err != nil {
 			log.Fatalf("failed to tag image: %v", err)
 		}
 	}
@@ -309,7 +307,7 @@ func releaseImages() {
 	}
 
 	var baseImageName string
-	for key := range maps.Keys(m.Build["base"].Images) {
+	for key := range m.Build["base"].Images {
 		baseImageName = key
 		break
 	}

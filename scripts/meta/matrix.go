@@ -10,6 +10,7 @@ type MatrixEntry struct {
 	ImageTag    string `json:"image_tag"`
 	BrowserTag  string `json:"browser_tag"`
 	BaseTag     string `json:"base_image_tag"`
+	Platform    string `json:"platform"`
 	ImageType   string `json:"-"`
 }
 
@@ -33,16 +34,16 @@ func (m *Meta) GenerateWDMatrix(oldMeta *Meta) (string, error) {
 	return string(data), nil
 }
 
-func (m *Meta) GenerateMatrix(oldMeta *Meta, browser string) []MatrixEntry {
-	oldImages := oldMeta.Build[browser].Images
-	newImages := m.Build[browser].Images
+func (m *Meta) GenerateMatrix(oldMeta *Meta, imageType string) []MatrixEntry {
+	oldImages := oldMeta.Build[imageType].Images
+	newImages := m.Build[imageType].Images
 
 	var matrix []MatrixEntry
 
 	baseTag := os.Getenv("BASE_IMAGE_TAG")
 
-	for browserName, tags := range newImages {
-		for imageTag, browserTag := range tags.Tags {
+	for browserName, browser := range newImages {
+		for imageTag, browserTag := range browser.Tags {
 			// if the base image was rebuilt we need to update all browser images
 			if _, ok := oldImages[browserName]; ok && baseTag == "latest" {
 				if _, ok := oldImages[browserName].Tags[imageTag]; ok {
@@ -55,7 +56,8 @@ func (m *Meta) GenerateMatrix(oldMeta *Meta, browser string) []MatrixEntry {
 				ImageTag:    imageTag,
 				BrowserTag:  browserTag.Version,
 				BaseTag:     baseTag,
-				ImageType:   browser,
+				Platform:    browser.Platform,
+				ImageType:   imageType,
 			})
 		}
 	}

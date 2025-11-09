@@ -10,7 +10,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
     apt-get update && \
     apt-get install -y --no-install-recommends nodejs p11-kit libnss3 libxss1 libasound2t64 libatk-bridge2.0-0 libgbm1 \
-            ffmpeg xdg-utils wget libu2f-udev libvulkan1 unzip dumb-init && \
+        ffmpeg xdg-utils wget libu2f-udev libvulkan1 unzip && \
     # make chrome using system-wide trust store
     ln -sf /usr/lib/x86_64-linux-gnu/pkcs11/p11-kit-trust.so /usr/lib/x86_64-linux-gnu/libnssckbi.so && \
     apt-get clean && rm -rf /tmp/* && rm -Rf /var/lib/apt/lists/*
