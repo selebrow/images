@@ -5,7 +5,7 @@
                 "ubuntu-noble": {
                     "tags": {
                         "notag": {
-                            "version": "noble-20250529"
+                            "version": "noble-20251001"
                         }
                     }
                 }
@@ -14,6 +14,7 @@
         "playwright": {
             "images": {
                 "chrome": {
+                    "platform": "linux/amd64",
                     "tags": {
                         "1.53.1": {
                             "version": "137",
@@ -49,7 +50,45 @@
                         }
                     }
                 },
+                "chromium": {
+                    "platform": "linux/amd64,linux/arm64",
+                    "tags": {
+                        "1.53.1": {
+                            "version": "138",
+                            "imageTag": "v1.0.17-1.53.1"
+                        },
+                        "1.53.2": {
+                            "version": "138",
+                            "imageTag": "v1.0.17-1.53.2"
+                        },
+                        "1.54.1": {
+                            "version": "139",
+                            "imageTag": "v1.0.17-1.54.1"
+                        },
+                        "1.54.2": {
+                            "version": "139",
+                            "imageTag": "v1.0.17-1.54.2"
+                        },
+                        "1.55.0": {
+                            "version": "140",
+                            "imageTag": "v1.0.17-1.55.0"
+                        },
+                        "1.55.1": {
+                            "version": "140",
+                            "imageTag": "v1.0.17-1.55.1"
+                        },
+                        "1.56.0": {
+                            "version": "141",
+                            "imageTag": "v1.0.17-1.56.0"
+                        },
+                        "1.56.1": {
+                            "version": "141",
+                            "imageTag": "v1.0.17-1.56.1"
+                        }
+                    }
+                },
                 "firefox": {
+                    "platform": "linux/amd64,linux/arm64",
                     "tags": {
                         "1.53.1": {
                             "version": "139",
@@ -86,6 +125,7 @@
                     }
                 },
                 "webkit": {
+                    "platform": "linux/amd64,linux/arm64",
                     "tags": {
                         "1.53.1": {
                             "version": "18.5",
@@ -126,6 +166,7 @@
         "webdriver": {
             "images": {
                 "chrome": {
+                    "platform": "linux/amd64",
                     "tags": {
                         "139.0": {
                             "version": "139",
@@ -146,6 +187,7 @@
                     }
                 },
                 "firefox": {
+                    "platform": "linux/amd64",
                     "tags": {
                         "141.0": {
                             "version": "141",

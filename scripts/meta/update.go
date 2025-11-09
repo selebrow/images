@@ -2,7 +2,6 @@ package meta
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"maps"
@@ -16,9 +15,10 @@ import (
 )
 
 const (
-	browserChrome  = "chrome"
-	browserFirefox = "firefox"
-	browserWebkit  = "webkit"
+	browserChrome   = "chrome"
+	browserChromium = "chromium"
+	browserFirefox  = "firefox"
+	browserWebkit   = "webkit"
 
 	wdKeepTags = 4
 	pwKeepTags = 8
@@ -40,7 +40,8 @@ type (
 	}
 
 	Browser struct {
-		Tags map[string]Tag `json:"tags"`
+		Platform string         `json:"platform"`
+		Tags     map[string]Tag `json:"tags"`
 	}
 
 	Tag struct {
@@ -138,7 +139,7 @@ func (m *Meta) updatePW() error {
 	for _, tag := range releaseTags {
 		ntag := normalizePWTag(tag)
 
-		// if it's not valid for chrome - drop it: we can not have version skew for playwright
+		// drop it if it's not valid for chrome - we cannot have version skew for playwright
 		if _, ok := pwImages[browserChrome].Tags[ntag]; !ok {
 			chromeTag, err := m.getPWBrowserTag(browserChrome, tag)
 			if err != nil {
@@ -151,7 +152,8 @@ func (m *Meta) updatePW() error {
 			}
 		} else {
 			log.Println("Playwright tag", ntag, "is already defined")
-			changed = true
+
+			// skip all remaining tags since we start from the latest one
 			break
 		}
 
@@ -159,19 +161,25 @@ func (m *Meta) updatePW() error {
 		if err != nil {
 			return err
 		}
-		changed = m.updateTags(Playwright, browserChrome, ntag, chromeTag, releaseTag, pwKeepTags) || changed
+		changed = changed || m.updateTags(Playwright, browserChrome, ntag, chromeTag, releaseTag, pwKeepTags)
+
+		chromiumTag, err := m.getPWBrowserTag(browserChromium, tag)
+		if err != nil {
+			return err
+		}
+		changed = changed || m.updateTags(Playwright, browserChromium, ntag, chromiumTag, releaseTag, pwKeepTags)
 
 		firefoxTag, err := m.getPWBrowserTag(browserFirefox, tag)
 		if err != nil {
 			return err
 		}
-		changed = m.updateTags(Playwright, browserFirefox, ntag, firefoxTag, releaseTag, pwKeepTags) || changed
+		changed = changed || m.updateTags(Playwright, browserFirefox, ntag, firefoxTag, releaseTag, pwKeepTags)
 
 		webkitTag, err := m.getPWBrowserTag(browserWebkit, tag)
 		if err != nil {
 			return err
 		}
-		changed = m.updateTags(Playwright, browserWebkit, ntag, webkitTag, releaseTag, pwKeepTags) || changed
+		changed = changed || m.updateTags(Playwright, browserWebkit, ntag, webkitTag, releaseTag, pwKeepTags)
 
 		if changed {
 			fmt.Printf("LATEST_PLAYWRIGHT_VERSION=%s\n", tag)
@@ -241,7 +249,7 @@ func (m *Meta) getPWBrowserVersion(browser, tag string) (string, error) {
 func (m *Meta) getAvailableChromeTags() (map[string]struct{}, error) {
 	tags := make(map[string]struct{})
 
-	for tag := range maps.Keys(m.Build[WebDriver].Images[browserChrome].Tags) {
+	for tag := range m.Build[WebDriver].Images[browserChrome].Tags {
 		tags[tag] = struct{}{}
 	}
 
@@ -331,7 +339,7 @@ func parseVersionTag(envVar string) (string, error) {
 
 	parsedVersion := regexp.MustCompile(`^(\d+\.\d+)`).FindString(ver)
 	if parsedVersion == "" {
-		return "", errors.New(fmt.Sprintf("malformed env var: %s", envVar))
+		return "", fmt.Errorf("malformed env var: %s", envVar)
 	}
 
 	return parsedVersion, nil
