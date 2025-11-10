@@ -7,7 +7,7 @@ USER root
 COPY rootfs/ /
 
 RUN export DEBIAN_FRONTEND=noninteractive && \
-    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get update && \
     apt-get install -y --no-install-recommends nodejs libwoff1 libopus0 libwebpdemux2 libepoxy0  \
         liblcms2-2 libenchant-2-2 libmanette-0.2-0 libsoup-3.0-0 libxkbcommon0 libgles2 \
@@ -19,7 +19,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
 USER ${SB_USER}
 WORKDIR ${SB_USER_HOME}
 
-ARG PLAYWRIGHT_VERSION=1.51.1
+ARG PLAYWRIGHT_VERSION=1.53.1
 RUN PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install playwright@$PLAYWRIGHT_VERSION &&  \
     npm install playwright-webkit@$PLAYWRIGHT_VERSION
 
