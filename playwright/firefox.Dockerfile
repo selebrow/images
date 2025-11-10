@@ -7,7 +7,7 @@ USER root
 COPY rootfs/ /
 
 RUN export DEBIAN_FRONTEND=noninteractive && \
-    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get update && \
     apt-get install -y --no-install-recommends nodejs p11-kit libasound2t64 libx11-xcb1 \
         libdbus-glib-1-2 libxt6 libgtk-3-0 ffmpeg && \
@@ -16,7 +16,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
 USER ${SB_USER}
 WORKDIR ${SB_USER_HOME}
 
-ARG PLAYWRIGHT_VERSION=1.51.1
+ARG PLAYWRIGHT_VERSION=1.53.1
 RUN PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install playwright@$PLAYWRIGHT_VERSION &&  \
     npm install playwright-firefox@$PLAYWRIGHT_VERSION && \
     # make firefox use system-wide trust store
