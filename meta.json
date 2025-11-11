@@ -3,6 +3,7 @@
         "base": {
             "images": {
                 "ubuntu-noble": {
+                    "platform": "",
                     "tags": {
                         "notag": {
                             "version": "noble-20251001"
