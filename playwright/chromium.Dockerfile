@@ -7,7 +7,7 @@ USER root
 COPY rootfs/ /
 
 RUN export DEBIAN_FRONTEND=noninteractive && \
-    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get update && \
     apt-get install -y --no-install-recommends nodejs p11-kit libnss3 libxss1 libasound2t64 \
         libatk-bridge2.0-0t64 libgbm1 xdg-utils wget libu2f-udev libvulkan1 unzip && \
@@ -18,7 +18,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
 USER ${SB_USER}
 WORKDIR ${SB_USER_HOME}
 
-ARG PLAYWRIGHT_VERSION=1.51.1
+ARG PLAYWRIGHT_VERSION=1.53.1
 RUN PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install playwright@$PLAYWRIGHT_VERSION &&  \
     npm install playwright-chromium@$PLAYWRIGHT_VERSION
 
