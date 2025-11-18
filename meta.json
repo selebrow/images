@@ -190,10 +190,6 @@
                 "firefox": {
                     "platform": "linux/amd64",
                     "tags": {
-                        "141.0": {
-                            "version": "141",
-                            "imageTag": "v1.0.18-141.0"
-                        },
                         "142.0": {
                             "version": "142",
                             "imageTag": "v1.0.18-142.0"
@@ -205,6 +201,10 @@
                         "144.0": {
                             "version": "144",
                             "imageTag": "v1.0.18-144.0"
+                        },
+                        "145.0": {
+                            "version": "145",
+                            "imageTag": "v1.0.22-145.0"
                         }
                     }
                 }
