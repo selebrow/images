@@ -169,10 +169,6 @@
                 "chrome": {
                     "platform": "linux/amd64",
                     "tags": {
-                        "139.0": {
-                            "version": "139",
-                            "imageTag": "v1.0.18-139.0"
-                        },
                         "140.0": {
                             "version": "140",
                             "imageTag": "v1.0.18-140.0"
@@ -184,6 +180,10 @@
                         "142.0": {
                             "version": "142",
                             "imageTag": "v1.0.18-142.0"
+                        },
+                        "143.0": {
+                            "version": "143",
+                            "imageTag": "v1.0.24-143.0"
                         }
                     }
                 },
