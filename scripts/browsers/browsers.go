@@ -2,6 +2,8 @@ package browsers
 
 import (
 	"fmt"
+	"os"
+	"slices"
 	"updater/meta"
 
 	"gopkg.in/yaml.v3"
@@ -69,30 +71,55 @@ type (
 	}
 )
 
-func Generate(m *meta.Meta) ([]byte, error) {
+func Generate(m, oldMeta *meta.Meta) ([]byte, error) {
 	browserCatalog := make(BrowserCatalog)
 
-	for protocol, images := range m.Build {
-		if protocol == "base" {
+	browserData, err := os.ReadFile("old-browsers.yaml")
+	if err != nil {
+		return nil, err
+	}
+
+	releaseTag := os.Getenv("RELEASE_TAG")
+
+	var oldBrowsers BrowserCatalog
+	if err := yaml.Unmarshal(browserData, &oldBrowsers); err != nil {
+		return nil, err
+	}
+
+	for imageType, images := range m.Build {
+		if imageType == "base" {
 			continue
 		}
+
+		matrix := m.GenerateMatrix(oldMeta, imageType)
 
 		browsers := make(Browsers)
 		for name, image := range images.Images {
 			versionTags := make(map[string]string)
-			for key, tag := range image.Tags {
-				versionTags[key] = tag.ImageTag
+
+			defaultImage := oldBrowsers[BrowserProtocol(imageType)][name].Images["default"]
+
+			for key := range image.Tags {
+				tag, ok := defaultImage.VersionTags[key]
+
+				if slices.ContainsFunc(matrix, func(e meta.MatrixEntry) bool {
+					return e.ImageTag == key && e.BrowserName == name
+				}) || !ok {
+					tag = fmt.Sprintf("%s-%s", releaseTag, key)
+				}
+
+				versionTags[key] = tag
 			}
 
 			imageConf := BrowserImageConfig{
 				DefaultVersion: getLatestTag(image.Tags),
-				Image:          fmt.Sprintf("%s/%s/%s", imagePrefix, protocol, name),
+				Image:          fmt.Sprintf("%s/%s/%s", imagePrefix, imageType, name),
 				Limits:         defaultLimits,
 				VersionTags:    versionTags,
 				Env:            defaultEnv,
 			}
 
-			switch BrowserProtocol(protocol) {
+			switch BrowserProtocol(imageType) {
 			case WebdriverProtocol:
 				imageConf.Ports = defaultWebdriverPorts
 			case PlaywrightProtocol:
@@ -106,7 +133,7 @@ func Generate(m *meta.Meta) ([]byte, error) {
 			}
 		}
 
-		browserCatalog[BrowserProtocol(protocol)] = browsers
+		browserCatalog[BrowserProtocol(imageType)] = browsers
 	}
 
 	data, err := yaml.Marshal(browserCatalog)
@@ -117,7 +144,7 @@ func Generate(m *meta.Meta) ([]byte, error) {
 	return data, nil
 }
 
-func getLatestTag(tags map[string]meta.Tag) string {
+func getLatestTag(tags map[string]string) string {
 	var tag string
 	for key := range tags {
 		if key > tag {

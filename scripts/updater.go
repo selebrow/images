@@ -328,7 +328,12 @@ func generateBrowsers() {
 		log.Fatalf("failed load meta: %v", err)
 	}
 
-	data, err := browsers.Generate(m)
+	oldMeta, err := meta.Load("meta-old.json")
+	if err != nil {
+		log.Fatalf("failed to load old meta: %v", err)
+	}
+
+	data, err := browsers.Generate(m, oldMeta)
 	if err != nil {
 		log.Fatalf("failed to generate browsers: %v", err)
 	}
