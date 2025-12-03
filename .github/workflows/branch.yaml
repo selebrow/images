@@ -37,8 +37,8 @@ jobs:
             git show origin/main:meta.json > meta-old.json
           fi
 
-          oldTag=$(jq -r '.build.base.images."ubuntu-noble".tags.notag.version' meta-old.json)
-          newTag=$(jq -r '.build.base.images."ubuntu-noble".tags.notag.version' meta.json)
+          oldTag=$(jq -r '.build.base.images."ubuntu-noble".tags.notag' meta-old.json)
+          newTag=$(jq -r '.build.base.images."ubuntu-noble".tags.notag' meta.json)
 
           if [ "$oldTag" == "$newTag" ]; then
               exit 1
@@ -322,11 +322,9 @@ jobs:
           CLONED_REPO: selebrow.github.io
           CLONE_URL: https://github.com/selebrow
         run: |
-          if [[ "$GITHUB_REF" == 'refs/heads/main' ]]; then
-            git show $(git rev-parse HEAD^):meta.json > meta-old.json
-          else
-            git show origin/main:meta.json > meta-old.json
-          fi
+          git show $(git rev-parse HEAD^):meta.json > meta-old.json
+
+          cp ${CLONED_REPO}/browsers.yaml old-browsers.yaml
 
           go run scripts/updater.go generate-browsers
 

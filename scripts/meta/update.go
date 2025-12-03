@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"maps"
 	"net/http"
 	"os"
 	"regexp"
@@ -40,13 +39,8 @@ type (
 	}
 
 	Browser struct {
-		Platform string         `json:"platform"`
-		Tags     map[string]Tag `json:"tags"`
-	}
-
-	Tag struct {
-		Version  string `json:"version"`
-		ImageTag string `json:"imageTag,omitempty"`
+		Platform string            `json:"platform"`
+		Tags     map[string]string `json:"tags"`
 	}
 
 	playwrightBrowsers struct {
@@ -96,15 +90,13 @@ func (m *Meta) save() error {
 }
 
 func (m *Meta) updateWD() error {
-	releaseTag := os.Getenv("RELEASE_TAG")
-
 	chromeTag, err := parseVersionTag("LATEST_CHROME_VERSION")
 	if err != nil {
 		return err
 	}
 
 	if chromeTag != "" {
-		m.updateTags(WebDriver, browserChrome, chromeTag, "", releaseTag, wdKeepTags)
+		m.updateTags(WebDriver, browserChrome, chromeTag, "", wdKeepTags)
 	}
 
 	firefoxTag, err := parseVersionTag("LATEST_FIREFOX_VERSION")
@@ -113,7 +105,7 @@ func (m *Meta) updateWD() error {
 	}
 
 	if firefoxTag != "" {
-		m.updateTags(WebDriver, browserFirefox, firefoxTag, "", releaseTag, wdKeepTags)
+		m.updateTags(WebDriver, browserFirefox, firefoxTag, "", wdKeepTags)
 	}
 
 	return nil
@@ -132,15 +124,13 @@ func (m *Meta) updatePW() error {
 
 	pwImages := m.Build[Playwright].Images
 
-	releaseTag := os.Getenv("RELEASE_TAG")
-
 	var changed bool
 
 	for _, tag := range releaseTags {
-		ntag := normalizePWTag(tag)
+		playwrightTag := normalizePWTag(tag)
 
 		// drop it if it's not valid for chrome - we cannot have version skew for playwright
-		if _, ok := pwImages[browserChrome].Tags[ntag]; !ok {
+		if _, ok := pwImages[browserChrome].Tags[playwrightTag]; !ok {
 			chromeTag, err := m.getPWBrowserTag(browserChrome, tag)
 			if err != nil {
 				return err
@@ -151,7 +141,7 @@ func (m *Meta) updatePW() error {
 				continue
 			}
 		} else {
-			log.Println("Playwright tag", ntag, "is already defined")
+			log.Println("Playwright tag", playwrightTag, "is already defined")
 
 			// skip all remaining tags since we start from the latest one
 			break
@@ -161,25 +151,25 @@ func (m *Meta) updatePW() error {
 		if err != nil {
 			return err
 		}
-		changed = changed || m.updateTags(Playwright, browserChrome, ntag, chromeTag, releaseTag, pwKeepTags)
+		changed = changed || m.updateTags(Playwright, browserChrome, playwrightTag, chromeTag, pwKeepTags)
 
 		chromiumTag, err := m.getPWBrowserTag(browserChromium, tag)
 		if err != nil {
 			return err
 		}
-		changed = changed || m.updateTags(Playwright, browserChromium, ntag, chromiumTag, releaseTag, pwKeepTags)
+		changed = changed || m.updateTags(Playwright, browserChromium, playwrightTag, chromiumTag, pwKeepTags)
 
 		firefoxTag, err := m.getPWBrowserTag(browserFirefox, tag)
 		if err != nil {
 			return err
 		}
-		changed = changed || m.updateTags(Playwright, browserFirefox, ntag, firefoxTag, releaseTag, pwKeepTags)
+		changed = changed || m.updateTags(Playwright, browserFirefox, playwrightTag, firefoxTag, pwKeepTags)
 
 		webkitTag, err := m.getPWBrowserTag(browserWebkit, tag)
 		if err != nil {
 			return err
 		}
-		changed = changed || m.updateTags(Playwright, browserWebkit, ntag, webkitTag, releaseTag, pwKeepTags)
+		changed = changed || m.updateTags(Playwright, browserWebkit, playwrightTag, webkitTag, pwKeepTags)
 
 		if changed {
 			fmt.Printf("LATEST_PLAYWRIGHT_VERSION=%s\n", tag)
@@ -256,15 +246,17 @@ func (m *Meta) getAvailableChromeTags() (map[string]struct{}, error) {
 	return tags, nil
 }
 
-func (m *Meta) updateTags(image, browser, tag, version, releaseTag string, keepTags int) bool {
+func (m *Meta) updateTags(image, browser, tag, version string, keepTags int) bool {
+	log.Printf("Checking %s tag %s for %s\n", image, tag, browser)
+
 	browserImage := m.Build[image]
 
 	if browserImage.Images[browser].Tags == nil {
-		browserImage.Images[browser] = &Browser{Tags: make(map[string]Tag)}
+		browserImage.Images[browser] = &Browser{Tags: make(map[string]string)}
 	}
 
 	if _, ok := browserImage.Images[browser].Tags[tag]; ok {
-		log.Println("tag", tag, "is already defined for browser")
+		log.Println("Tag", tag, "is already defined for", browser)
 		return false
 	}
 
@@ -276,18 +268,15 @@ func (m *Meta) updateTags(image, browser, tag, version, releaseTag string, keepT
 		version = strings.Split(version, ".")[0]
 	}
 
-	browserImage.Images[browser].Tags[tag] = Tag{
-		Version:  version,
-		ImageTag: fmt.Sprintf("%s-%s", releaseTag, tag),
-	}
+	browserImage.Images[browser].Tags[tag] = version
 
-	log.Println("tag", tag, "added for browser", browser)
+	log.Println("Tag", tag, "added for", browser)
 
 	if len(browserImage.Images[browser].Tags) > keepTags {
 		delTag := m.findOldestTag(image, browser)
 		delete(browserImage.Images[browser].Tags, delTag)
 
-		log.Println("tag", tag, "deleted for browser", browser)
+		log.Println("Tag", delTag, "deleted for", browser)
 	}
 
 	m.Build[image] = browserImage
@@ -298,7 +287,7 @@ func (m *Meta) updateTags(image, browser, tag, version, releaseTag string, keepT
 func (m *Meta) findOldestTag(image, browser string) string {
 	var oldest string
 
-	for tag := range maps.Keys(m.Build[image].Images[browser].Tags) {
+	for tag := range m.Build[image].Images[browser].Tags {
 		if oldest == "" {
 			oldest = tag
 			continue
