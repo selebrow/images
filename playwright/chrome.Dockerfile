@@ -23,12 +23,19 @@ USER ${SB_USER}
 WORKDIR ${SB_USER_HOME}
 
 ARG PLAYWRIGHT_VERSION=1.53.1
+ARG BROWSER_VERSION=137
+
 RUN --mount=type=bind,source=browser_data,target=/data \
     export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 && \
     npm install playwright@${PLAYWRIGHT_VERSION} playwright-chromium@${PLAYWRIGHT_VERSION} && \
     CHROMIUM_REVISION=$(jq -r '.browsers[] | select(.name == "chromium") | .revision' <node_modules/playwright-core/browsers.json) && \
-    mkdir -p ${SB_USER_HOME}/.cache/ms-playwright/chromium-${CHROMIUM_REVISION}/chrome-linux && \
-    ln -s /opt/google/chrome/google-chrome ${SB_USER_HOME}/.cache/ms-playwright/chromium-${CHROMIUM_REVISION}/chrome-linux/chrome && \
+    CHROME_BASE_DIR=${SB_USER_HOME}/.cache/ms-playwright/chromium-${CHROMIUM_REVISION}/chrome-linux64 && \
+    if [ "$BROWSER_VERSION" -lt 142 ]; then \
+        CHROME_BASE_DIR=${SB_USER_HOME}/.cache/ms-playwright/chromium-${CHROMIUM_REVISION}/chrome-linux ; \
+    fi ; \
+    mkdir -p "${CHROME_BASE_DIR}" && \
+    ln -s /opt/google/chrome/google-chrome ${CHROME_BASE_DIR}/chrome && \
+    ${CHROME_BASE_DIR}/chrome --version && \
     FFMPEG_REVISION=$(jq -r '.browsers[] | select(.name == "ffmpeg") | .revision' <node_modules/playwright-core/browsers.json) && \
     FFMPEG_CACHE_DIR=${SB_USER_HOME}/.cache/ms-playwright/ffmpeg-${FFMPEG_REVISION} && \
     mkdir -p $FFMPEG_CACHE_DIR && \
@@ -36,8 +43,10 @@ RUN --mount=type=bind,source=browser_data,target=/data \
     CHROME_HEADLESS_CACHE_DIR=${SB_USER_HOME}/.cache/ms-playwright/chromium_headless_shell-${CHROMIUM_REVISION} && \
     mkdir -p $CHROME_HEADLESS_CACHE_DIR && \
     unzip /data/chrome-headless-shell-linux64.zip -d ${CHROME_HEADLESS_CACHE_DIR} && \
-    mv ${CHROME_HEADLESS_CACHE_DIR}/chrome-headless-shell-linux64 ${CHROME_HEADLESS_CACHE_DIR}/chrome-linux && \
-    ln -s ${CHROME_HEADLESS_CACHE_DIR}/chrome-linux/chrome-headless-shell ${CHROME_HEADLESS_CACHE_DIR}/chrome-linux/headless_shell && \
-    ${CHROME_HEADLESS_CACHE_DIR}/chrome-linux/headless_shell --version
+    if [ "$BROWSER_VERSION" -lt 142 ]; then \
+        mv ${CHROME_HEADLESS_CACHE_DIR}/chrome-headless-shell-linux64 ${CHROME_HEADLESS_CACHE_DIR}/chrome-linux && \
+        ln -s ${CHROME_HEADLESS_CACHE_DIR}/chrome-linux/chrome-headless-shell ${CHROME_HEADLESS_CACHE_DIR}/chrome-linux/headless_shell ; \
+    fi ; \
+    ${CHROME_HEADLESS_CACHE_DIR}/chrome-*/chrome-headless-shell --version
 
 ENTRYPOINT [ "dumb-init", "--", "/entrypoint.sh" ]

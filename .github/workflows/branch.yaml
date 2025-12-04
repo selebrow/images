@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - "meta.json"
+      - "**/*.Dockerfile"
 
 env:
   REGISTRY: ghcr.io
@@ -241,6 +242,7 @@ jobs:
             BASE_IMAGE=${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}
             BASE_IMAGE_TAG=${{ matrix.base_image_tag }}
             PLAYWRIGHT_VERSION=${{ matrix.image_tag }}
+            BROWSER_VERSION=${{ matrix.browser_tag }}
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PROJECT }}/playwright/${{ matrix.browser_name }}:${{ env.TAG }}
 
   status-check:
