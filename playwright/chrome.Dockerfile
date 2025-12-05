@@ -22,7 +22,7 @@ RUN --mount=type=bind,source=browser_data,target=/data \
 USER ${SB_USER}
 WORKDIR ${SB_USER_HOME}
 
-ARG PLAYWRIGHT_VERSION=1.53.1
+ARG PLAYWRIGHT_VERSION=1.53.2
 ARG BROWSER_VERSION=137
 
 RUN --mount=type=bind,source=browser_data,target=/data \
