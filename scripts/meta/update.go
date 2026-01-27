@@ -151,25 +151,25 @@ func (m *Meta) updatePW() error {
 		if err != nil {
 			return err
 		}
-		changed = changed || m.updateTags(Playwright, browserChrome, playwrightTag, chromeTag, pwKeepTags)
+		changed = m.updateTags(Playwright, browserChrome, playwrightTag, chromeTag, pwKeepTags) || changed
 
 		chromiumTag, err := m.getPWBrowserTag(browserChromium, tag)
 		if err != nil {
 			return err
 		}
-		changed = changed || m.updateTags(Playwright, browserChromium, playwrightTag, chromiumTag, pwKeepTags)
+		changed = m.updateTags(Playwright, browserChromium, playwrightTag, chromiumTag, pwKeepTags) || changed
 
 		firefoxTag, err := m.getPWBrowserTag(browserFirefox, tag)
 		if err != nil {
 			return err
 		}
-		changed = changed || m.updateTags(Playwright, browserFirefox, playwrightTag, firefoxTag, pwKeepTags)
+		changed = m.updateTags(Playwright, browserFirefox, playwrightTag, firefoxTag, pwKeepTags) || changed
 
 		webkitTag, err := m.getPWBrowserTag(browserWebkit, tag)
 		if err != nil {
 			return err
 		}
-		changed = changed || m.updateTags(Playwright, browserWebkit, playwrightTag, webkitTag, pwKeepTags)
+		changed = m.updateTags(Playwright, browserWebkit, playwrightTag, webkitTag, pwKeepTags) || changed
 
 		if changed {
 			fmt.Printf("LATEST_PLAYWRIGHT_VERSION=%s\n", tag)
@@ -195,6 +195,7 @@ func (m *Meta) getPWBrowserTag(browser, tag string) (string, error) {
 		return "", err
 	}
 
+	// chrome is 1 version behind chromium so we decrement it
 	return fmt.Sprintf("%d.0", v-1), nil
 }
 
