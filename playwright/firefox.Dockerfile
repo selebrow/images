@@ -17,8 +17,8 @@ USER ${SB_USER}
 WORKDIR ${SB_USER_HOME}
 
 ARG PLAYWRIGHT_VERSION=1.53.2
-RUN PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install playwright@$PLAYWRIGHT_VERSION &&  \
-    npm install playwright-firefox@$PLAYWRIGHT_VERSION && \
+RUN npm install playwright@$PLAYWRIGHT_VERSION && \
+    npx playwright install firefox && \
     # make firefox use system-wide trust store
     FIREFOX_REVISION=$(jq -r '.browsers[] | select(.name == "firefox") | .revision' <node_modules/playwright-core/browsers.json) && \
     ln -sf /usr/lib/*64-linux-gnu/pkcs11/p11-kit-trust.so .cache/ms-playwright/firefox-${FIREFOX_REVISION}/firefox/libnssckbi.so
