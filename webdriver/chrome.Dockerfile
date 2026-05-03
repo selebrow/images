@@ -19,9 +19,11 @@ RUN --mount=type=bind,source=browser_data,target=/data \
     export DEBIAN_FRONTEND=noninteractive && \
     unzip -j /data/chromedriver-linux64.zip chromedriver-linux64/chromedriver -d /usr/bin && chmod 755 /usr/bin/chromedriver && \
     chromedriver --version && \
-    dpkg -i /data/google-chrome-stable.deb && \
-    sed -i -e 's@exec -a "$0" "$HERE/chrome"@& --no-sandbox --disable-gpu@' /opt/google/chrome/google-chrome && \
-    chown root:root /opt/google/chrome/chrome-sandbox && chmod 4755 /opt/google/chrome/chrome-sandbox && \
+    unzip /data/chrome-linux64.zip -d /opt && \
+    CHROME_DIR=/opt/chrome-linux64 && \
+    sed -i -e 's@exec .* "$HERE/chrome"@& --no-sandbox --disable-gpu@' ${CHROME_DIR}/chrome-wrapper && \
+    chown root:root ${CHROME_DIR}/chrome_sandbox && chmod 4755 ${CHROME_DIR}/chrome_sandbox && \
+    ln -s ${CHROME_DIR}/chrome-wrapper /usr/bin/google-chrome && \
     google-chrome --version
 
 COPY chrome/rootfs/ /
