@@ -19,7 +19,7 @@ USER ${SB_USER}
 WORKDIR ${SB_USER_HOME}
 
 ARG PLAYWRIGHT_VERSION=1.53.2
-RUN PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install playwright@$PLAYWRIGHT_VERSION &&  \
-    npm install playwright-chromium@$PLAYWRIGHT_VERSION
+RUN npm install playwright@${PLAYWRIGHT_VERSION} && \
+    npx playwright install chromium
 
 ENTRYPOINT [ "dumb-init", "--", "/entrypoint.sh" ]
