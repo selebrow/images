@@ -121,6 +121,11 @@ func updateChrome() {
 		return
 	}
 
+	log.Println("downloading Chrome for testing")
+	if err := chrome.DownloadChromeForTesting(rev); err != nil {
+		log.Fatalf("failed to download Chrome for testing: %v", err)
+	}
+
 	log.Println("downloading Chrome driver")
 	if err := chrome.DownloadDriver(rev); err != nil {
 		log.Fatalf("failed to download Chrome driver: %v", err)
@@ -185,9 +190,10 @@ func generateMatrix(image string) {
 
 func downloadChrome() {
 	files := map[string]struct{}{
-		chrome.ChromeFile:         {},
-		chrome.ChromeHeadlessFile: {},
-		chrome.ChromedriverFile:   {},
+		chrome.ChromeFile:           {},
+		chrome.ChromeHeadlessFile:   {},
+		chrome.ChromedriverFile:     {},
+		chrome.ChromeForTestingFile: {},
 	}
 
 	downloadBrowsers(chrome.Image, files)

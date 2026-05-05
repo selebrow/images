@@ -13,12 +13,14 @@ import (
 )
 
 const (
-	Image = "chrome-src"
+	Image = "chrome-combined-src"
 
-	ChromedriverFile   = "chromedriver-linux64.zip"
-	ChromeFile         = "google-chrome-stable.deb"
-	ChromeHeadlessFile = "chrome-headless-shell-linux64.zip"
+	ChromedriverFile     = "chromedriver-linux64.zip"
+	ChromeFile           = "google-chrome-stable.deb"
+	ChromeHeadlessFile   = "chrome-headless-shell-linux64.zip"
+	ChromeForTestingFile = "chrome-linux64.zip"
 
+	chromefortesting    = "chrome"
 	chromedriver        = "chromedriver"
 	chromeHeadlessShell = "chrome-headless-shell"
 )
@@ -38,6 +40,7 @@ type (
 	}
 
 	chromeDownloads struct {
+		ChromeForTesting    []platformURL `json:"chrome"`
 		Chromedriver        []platformURL `json:"chromedriver"`
 		ChromeHeadlessShell []platformURL `json:"chrome-headless-shell"`
 	}
@@ -63,6 +66,10 @@ func GetRevision(rev string, reg *registry.Registry) (string, error) {
 	return "", nil
 }
 
+func DownloadChromeForTesting(major string) error {
+	return downloadBinary(chromefortesting, major, ChromeForTestingFile)
+}
+
 func DownloadDriver(major string) error {
 	return downloadBinary(chromedriver, major, ChromedriverFile)
 }
@@ -72,7 +79,7 @@ func DownloadHeadlessShell(major string) error {
 }
 
 func UploadRevision(rev string, reg *registry.Registry) error {
-	return reg.UploadFiles(rev, ChromeFile, ChromedriverFile, ChromeHeadlessFile)
+	return reg.UploadFiles(rev, ChromeForTestingFile, ChromeFile, ChromedriverFile, ChromeHeadlessFile)
 }
 
 func downloadBinary(name, major, filename string) error {
@@ -88,6 +95,8 @@ func downloadBinary(name, major, filename string) error {
 	)
 
 	switch name {
+	case chromefortesting:
+		platformURLs = downloads.ChromeForTesting
 	case chromedriver:
 		platformURLs = downloads.Chromedriver
 	case chromeHeadlessShell:
