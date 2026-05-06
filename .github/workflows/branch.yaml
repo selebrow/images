@@ -1,9 +1,5 @@
 name: Build images on branch
-on:
-  push:
-    paths:
-      - "meta.json"
-      - "**/*.Dockerfile"
+
 
 env:
   REGISTRY: ghcr.io
