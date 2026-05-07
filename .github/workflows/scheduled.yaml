@@ -59,7 +59,7 @@ jobs:
       - name: Get latest Chrome
         id: get-chrome-version
         run: |
-          version=$(scripts/download-chrome.sh)
+          version=$(scripts/get-chrome-version.sh)
           export LATEST_CHROME_VERSION=$version
           echo "LATEST_CHROME_VERSION=$version" >> "$GITHUB_OUTPUT"
           go run scripts/updater.go update-chrome
