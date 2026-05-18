@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"updater/github"
@@ -112,11 +111,6 @@ func (m *Meta) updateWD() error {
 }
 
 func (m *Meta) updatePW() error {
-	chromeTags, err := m.getAvailableChromeTags()
-	if err != nil {
-		return err
-	}
-
 	releaseTags, err := getLatestPlaywrightTags()
 	if err != nil {
 		return err
@@ -129,29 +123,10 @@ func (m *Meta) updatePW() error {
 	for _, tag := range releaseTags {
 		playwrightTag := normalizePWTag(tag)
 
-		// drop it if it's not valid for chrome - we cannot have version skew for playwright
-		if _, ok := pwImages[browserChrome].Tags[playwrightTag]; !ok {
-			chromeTag, err := m.getPWBrowserTag(browserChrome, tag)
-			if err != nil {
-				return err
-			}
-
-			if _, ok := chromeTags[chromeTag]; !ok {
-				log.Println("Chrome tag", chromeTag, "is still not available")
-				continue
-			}
-		} else {
+		if _, ok := pwImages[browserChromium].Tags[playwrightTag]; ok {
 			log.Println("Playwright tag", playwrightTag, "is already defined")
-
-			// skip all remaining tags since we start from the latest one
 			break
 		}
-
-		chromeTag, err := m.getPWBrowserTag(browserChrome, tag)
-		if err != nil {
-			return err
-		}
-		changed = m.updateTags(Playwright, browserChrome, playwrightTag, chromeTag, pwKeepTags) || changed
 
 		chromiumTag, err := m.getPWBrowserTag(browserChromium, tag)
 		if err != nil {
@@ -186,17 +161,7 @@ func (m *Meta) getPWBrowserTag(browser, tag string) (string, error) {
 		return "", err
 	}
 
-	if browser != browserChrome {
-		return version, nil
-	}
-
-	v, err := strconv.Atoi(strings.Split(version, ".")[0])
-	if err != nil {
-		return "", err
-	}
-
-	// chrome is 1 version behind chromium so we decrement it
-	return fmt.Sprintf("%d.0", v-1), nil
+	return strings.Split(version, ".")[0], nil
 }
 
 func (m *Meta) getPWBrowserVersion(browser, tag string) (string, error) {
@@ -222,29 +187,13 @@ func (m *Meta) getPWBrowserVersion(browser, tag string) (string, error) {
 		m.pwBrowsers[tag] = browsers
 	}
 
-	filter := browser
-	if browser == browserChrome {
-		filter = "chromium"
-	}
-
 	for _, b := range m.pwBrowsers[tag].Browsers {
-		if b.Name == filter {
+		if b.Name == browser {
 			return b.Version, nil
 		}
 	}
 
-	// should not be reachable
 	return "", nil
-}
-
-func (m *Meta) getAvailableChromeTags() (map[string]struct{}, error) {
-	tags := make(map[string]struct{})
-
-	for tag := range m.Build[WebDriver].Images[browserChrome].Tags {
-		tags[tag] = struct{}{}
-	}
-
-	return tags, nil
 }
 
 func (m *Meta) updateTags(image, browser, tag, version string, keepTags int) bool {
